@@ -112,3 +112,19 @@ def get_grades_prediction(students_grades, suggestions_distances, quant_similar=
         grade_prediction[i] = similar_grades.mean()
 
     return grade_prediction
+
+
+def DEBUG_get_grades_prediction(students_grades, suggestions_distances, quant_similar=3):
+    quant_students = len(students_grades)
+    grade_prediction = np.empty((quant_students, quant_similar))
+    student_similarity = np.empty((quant_students, quant_similar))
+
+    for i in range(quant_students):
+        distances = np.concatenate((suggestions_distances[i, :i], suggestions_distances[i, i+1:]))
+        grades = np.concatenate((students_grades[:i], students_grades[i+1:]))
+        sorted_indices = np.argsort(distances)
+
+        grade_prediction[i] = grades[sorted_indices[:quant_similar]]
+        student_similarity[i] = distances[sorted_indices[:quant_similar]]
+
+    return (grade_prediction, student_similarity)

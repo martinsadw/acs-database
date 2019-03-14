@@ -41,3 +41,12 @@ def style_distance(a, b, axis=None):
         distance = np.sum(np.abs(a - b), axis=axis)
 
     return distance
+
+
+def array_interleave(a, b, axis=-1):
+    if axis < 0:
+        axis = len(a.shape) + axis
+
+    new_shape = a.shape[:axis] + (a.shape[axis] * 2,) + a.shape[axis+1:]
+
+    return np.stack([a, b], axis+1).reshape(new_shape)
