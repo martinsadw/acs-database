@@ -3,10 +3,14 @@ import matplotlib.pyplot as plt
 
 from database.read import open_students, open_suggestions, open_grades
 from database.students import get_students_index, get_students_suggestions, get_students_grades, get_distances_matrix, get_grades_prediction
-from utils.misc import hamming_distance
+from utils.misc import hamming_distance, cosine_distance
 
 
-subject = 1
+##PARAMS########################################################################
+subject = 8
+distance_metric = 'cosine'
+################################################################################
+
 
 students_db = open_students()
 suggestions_db = open_suggestions()
@@ -17,7 +21,10 @@ students_index = get_students_index(students_db, filter_group=1)
 students_suggestions = get_students_suggestions(subject, students_index, suggestions_db)
 students_grades = get_students_grades(subject, students_index, grades_db)
 
-suggestions_distances = get_distances_matrix(students_suggestions, hamming_distance)
+if distance_metric == 'hamming':
+    suggestions_distances = get_distances_matrix(students_suggestions, hamming_distance)
+elif distance_metric == 'cosine':
+    suggestions_distances = get_distances_matrix(students_suggestions, cosine_distance)
 
 filtered_distances = suggestions_distances[~students_grades.mask][:, ~students_grades.mask]
 filtered_grades = students_grades[~students_grades.mask]

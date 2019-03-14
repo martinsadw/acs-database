@@ -6,7 +6,10 @@ from database.students import get_students_index, get_students_suggestions, get_
 from utils.misc import grade_distance
 
 
+##PARAMS########################################################################
 subject = 8
+################################################################################
+
 
 students_db = open_students()
 suggestions_db = open_suggestions()
