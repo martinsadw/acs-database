@@ -15,6 +15,15 @@ def get_students_index(students_db, filter_group=None):
     return students_index
 
 
+def get_students_id(students_index):
+    students_id = np.zeros(len(students_index.items()))
+
+    for id, index in students_index.items():
+        students_id[index] = id
+
+    return students_id
+
+
 def get_students_suggestions(subject, students_index, suggestions_db):
     quant_students = len(students_index)
     quant_materials = quant_materials_subjects[subject]
@@ -114,17 +123,20 @@ def get_grades_prediction(students_grades, suggestions_distances, quant_similar=
     return grade_prediction
 
 
-def DEBUG_get_grades_prediction(students_grades, suggestions_distances, quant_similar=3):
+def DEBUG_get_grades_prediction(students_grades, suggestions_distances, students_id, quant_similar=3):
     quant_students = len(students_grades)
     grade_prediction = np.empty((quant_students, quant_similar))
-    student_similarity = np.empty((quant_students, quant_similar))
+    suggested_students_distance = np.empty((quant_students, quant_similar))
+    suggested_students_id = np.empty((quant_students, quant_similar))
 
     for i in range(quant_students):
         distances = np.concatenate((suggestions_distances[i, :i], suggestions_distances[i, i+1:]))
         grades = np.concatenate((students_grades[:i], students_grades[i+1:]))
+        ids = np.concatenate((students_id[:i], students_id[i+1:]))
         sorted_indices = np.argsort(distances)
 
         grade_prediction[i] = grades[sorted_indices[:quant_similar]]
-        student_similarity[i] = distances[sorted_indices[:quant_similar]]
+        suggested_students_distance[i] = distances[sorted_indices[:quant_similar]]
+        suggested_students_id[i] = ids[sorted_indices[:quant_similar]]
 
-    return (grade_prediction, student_similarity)
+    return (grade_prediction, suggested_students_distance, suggested_students_id)
