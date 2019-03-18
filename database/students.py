@@ -113,11 +113,47 @@ def get_students_styles(students_index, styles_db):
         # students_styles[student, 3] = 0 if style["seqglo"] < 0 else 1
 
         students_styles[student, 0] = style["atiref"]
-        students_styles[student, 2] = style["semint"]
-        students_styles[student, 1] = style["visver"]
+        students_styles[student, 1] = style["semint"]
+        students_styles[student, 2] = style["visver"]
         students_styles[student, 3] = style["seqglo"]
 
     return students_styles
+
+
+def filter_students_by_style(students_index, students_styles, filter_groups=None):
+    if filter_groups is None:
+        filter_groups = []
+
+    new_student_index = {}
+    quant_students = 0
+
+    for id, index in students_index.items():
+        style = students_styles[index]
+
+        if "ati" in filter_groups and style[0] > 0:
+            continue
+        if "ref" in filter_groups and style[0] < 0:
+            continue
+
+        if "sem" in filter_groups and style[1] > 0:
+            continue
+        if "int" in filter_groups and style[1] < 0:
+            continue
+
+        if "vis" in filter_groups and style[2] > 0:
+            continue
+        if "ver" in filter_groups and style[2] < 0:
+            continue
+
+        if "seq" in filter_groups and style[3] > 0:
+            continue
+        if "glo" in filter_groups and style[3] < 0:
+            continue
+
+        new_student_index[id] = quant_students
+        quant_students += 1
+
+    return new_student_index
 
 
 def get_distances_matrix(data, distance_function, *args, discretization=None, **kwargs):
@@ -139,6 +175,8 @@ def get_distances_matrix(data, distance_function, *args, discretization=None, **
 def get_grades_prediction(students_grades, suggestions_distances, quant_similar=3):
     quant_students = len(students_grades)
     grade_prediction = np.empty((quant_students,))
+
+    print(students_grades.shape)
 
     for i in range(quant_students):
         distances = np.concatenate((suggestions_distances[i, :i], suggestions_distances[i, i+1:]))

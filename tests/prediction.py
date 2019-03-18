@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from database.read import open_students, open_suggestions, open_grades, open_abilities
-from database.students import get_students_index, get_students_id, get_students_suggestions, get_students_abilities, get_students_grades, get_distances_matrix, get_grades_prediction, DEBUG_get_grades_prediction
+from database.read import open_students, open_suggestions, open_grades, open_abilities, open_styles
+from database.students import get_students_index, get_students_id, filter_students_by_style, get_students_suggestions, get_students_abilities, get_students_grades, get_students_styles, get_distances_matrix, get_grades_prediction, DEBUG_get_grades_prediction
 from utils.misc import hamming_distance, cosine_distance, array_interleave
 from utils.output import save_csv
 
@@ -10,7 +10,8 @@ from utils.output import save_csv
 ##PARAMS########################################################################
 subject = 1
 distance_name = 'cosine'  # ['cosine', 'hamming']
-value_used = 'improvement'  # ['grade', 'ability', 'improvement']
+value_used = 'grade'  # ['grade', 'ability', 'improvement']
+style_filter = ['ati']  # None, ['ati', 'ref', 'sem', 'int', 'vis', 'ver', 'seq', 'glo']
 folder_name = 'results/2019-03-18 - Previsão de nota'
 ################################################################################
 if distance_name == 'hamming':
@@ -26,22 +27,39 @@ elif value_used == 'ability':
     value_show_name = 'Diferença de habilidade'
 elif value_used == 'improvement':
     value_show_name = 'Diferença de melhoria'
+
+if style_filter is None:
+    filter_show_name = ''
+    filter_file = 'all'
+else:
+    filter_show_name = ' - (' + ' | '.join(style_filter) + ')'
+    filter_file = ';'.join(style_filter)
 ################################################################################
+
 
 students_db = open_students()
 suggestions_db = open_suggestions()
 grades_db = open_grades()
 abilities_db = open_abilities()
+styles_db = open_styles()
 
+# Obtem um dicionário com todos os alunos
 students_index = get_students_index(students_db, filter_group=1)
+
+# Filtra os alunos utilizando o estilo de aprendizado
+students_styles = get_students_styles(students_index, styles_db)
+students_index = filter_students_by_style(students_index, students_styles, style_filter)
 students_id = get_students_id(students_index)
 
+# Obtem uma lista de sugestões, notas e habilidades de cada aluno
 students_suggestions = get_students_suggestions(subject, students_index, suggestions_db)
 students_grades = get_students_grades(subject, students_index, grades_db)
 students_abilities = get_students_abilities(subject, students_index, abilities_db)
 
+# Calcula a distância entre cada aluno utilizando os materiais sugeridos
 suggestions_distances = get_distances_matrix(students_suggestions, distance_function)
 
+# Remove os alunos que não possuem notas
 filtered_distances = suggestions_distances[~students_grades.mask][:, ~students_grades.mask]
 filtered_grades = students_grades[~students_grades.mask]
 filtered_abilities = students_abilities[~students_grades.mask]
@@ -54,9 +72,10 @@ elif value_used == 'ability':
 elif value_used == 'improvement':
     students_values = filtered_grades - filtered_abilities
 
+# Calcula a previsão do valor utilizado
 grades_prediction = get_grades_prediction(students_values, filtered_distances)
 
-# grades_diference = np.abs(grades_prediction - students_values)
+grades_diference = np.abs(grades_prediction - students_values)
 
 ################################################################################
 
@@ -67,18 +86,18 @@ sorted_prediction = grades_prediction[sort_values]
 sorted_similarity = grades_diference[sort_values]
 
 fig = plt.figure()
-fig.suptitle('%s - %s - Disciplina %d' % (value_show_name, distance_show_name, subject))
-plt.ylim(0, 6)
-# plt.plot(sorted_similarity, color='r', label="Similaridade")
-plt.plot(sorted_prediction, color='r', label="Previsão")
-plt.plot(sorted_values, color='g', label="Notas")
+fig.suptitle('%s - %s - Disciplina %d%s' % (value_show_name, distance_show_name, subject, filter_show_name))
+plt.ylim(0, 1)
+plt.plot(sorted_similarity, color='r', label="Similaridade")
+# plt.plot(sorted_prediction, color='r', label="Previsão")
+# plt.plot(sorted_values, color='g', label="Notas")
 plt.plot(np.full(grades_diference.shape, grades_diference.mean()), color='b', linewidth=0.5, label="Média de similaridade")
 plt.legend(loc=1)
-plt.savefig(folder_name + "/prediction_%s_%s_%d.png" % (value_used, distance_name, subject))
+plt.savefig(folder_name + "/prediction_%s_%s_%s_%d.png" % (value_used, distance_name, filter_file, subject))
 plt.show()
 
 (DEBUG_grades_prediction, DEBUG_students_distance, DEBUG_students_id) = DEBUG_get_grades_prediction(students_values, filtered_distances, filtered_id)
 DEBUG_students = array_interleave((DEBUG_students_id, DEBUG_grades_prediction, DEBUG_students_distance), axis=1)
 
 DEBUG_print = np.concatenate([filtered_id[..., np.newaxis], filtered_grades[..., np.newaxis], DEBUG_students, grades_prediction[..., np.newaxis], grades_diference[..., np.newaxis]], axis=1)
-save_csv(folder_name + "/prediction_%s_%s_%d.csv" % (value_used, distance_name, subject), DEBUG_print)
+save_csv(folder_name + "/prediction_%s_%s_%s_%d.csv" % (value_used, distance_name, filter_file, subject), DEBUG_print)
