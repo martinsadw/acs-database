@@ -8,11 +8,11 @@ def open_students():
     return students
 
 
-def open_students_ability():
+def open_abilities():
     with open('data/aluno_conceito.json', encoding='utf-8') as f:
-        open_students_ability = json.load(f)
+        abilities = json.load(f)
 
-    return open_students_ability
+    return abilities
 
 
 def open_logs():
@@ -66,6 +66,6 @@ def open_styles():
 
 def open_pretests():
     with open('data/questionario.json', encoding='utf-8') as f:
-        open_pretests = json.load(f)
+        pretests = json.load(f)
 
     return pretests

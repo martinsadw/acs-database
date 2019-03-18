@@ -1,7 +1,7 @@
 import numpy as np
 
 from utils.misc import hamming_distance
-from database.consts import quant_materials_subjects
+from database.consts import quant_materials_subjects, quant_concepts_subjects, concept_subject
 
 def get_students_index(students_db, filter_group=None):
     students_index = {}
@@ -44,6 +44,34 @@ def get_students_suggestions(subject, students_index, suggestions_db):
                 students_suggestions[student, material] = True
 
     return students_suggestions
+
+
+def get_students_abilities(subject, students_index, abilities_db, normalize=True):
+    quant_students = len(students_index)
+    quant_concepts = quant_concepts_subjects[subject]
+
+    students_abilities = np.ma.empty((quant_students,))
+    students_abilities[:] = np.ma.masked
+
+    for id, ability in abilities_db.items():
+        ability_subject = concept_subject[ability["id_conceito"]]
+
+        if ability["id_aluno"] not in students_index or ability_subject != subject:
+            continue
+
+        student = students_index[ability["id_aluno"]]
+
+        if np.ma.is_masked(students_abilities[student]):
+            students_abilities[student] = 0
+
+        students_abilities[student] += ability["habilidade"]
+
+    students_abilities /= quant_concepts
+
+    if normalize:
+        students_abilities /= 5
+
+    return students_abilities
 
 
 def get_students_grades(subject, students_index, grade_db, normalize=True):
