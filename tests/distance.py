@@ -2,13 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from database.read import open_students, open_suggestions, open_grades
-from database.students import get_students_index, get_students_suggestions, get_distances_matrix
+from database.students import get_students_index
+from database.get_data import get_students_suggestions
+from database.process_data import get_distances_matrix
 from utils.misc import hamming_distance, cosine_distance
 
 
 ##PARAMS########################################################################
-subject = 8
-distance_metric = 'cosine'
+subject = 2
+distance_metric = 'hamming'
 ################################################################################
 
 
@@ -32,5 +34,5 @@ if distance_metric == 'hamming':
 elif distance_metric == 'cosine':
     fig.suptitle('Distância do cosseno - Disciplina %d' % (subject))
 ax = fig.add_subplot(111)
-cmap = ax.imshow(suggestions_distances, interpolation='nearest', origin='lowest', cmap='gray', vmin=0)
+cmap = ax.imshow(suggestions_distances, interpolation='nearest', origin='lowest', cmap='gray', vmin=0, vmax=0.4)
 plt.show()

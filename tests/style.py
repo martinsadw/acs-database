@@ -2,7 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from database.read import open_students, open_styles
-from database.students import get_students_index, get_students_styles, get_distances_matrix
+from database.students import get_students_index
+from database.get_data import get_students_styles
+from database.process_data import get_distances_matrix
+
 from utils.misc import style_distance
 
 
