@@ -21,8 +21,6 @@ def get_grades_prediction(students_grades, suggestions_distances, quant_similar=
     quant_students = len(students_grades)
     grade_prediction = np.empty((quant_students,))
 
-    print(students_grades.shape)
-
     for i in range(quant_students):
         distances = np.concatenate((suggestions_distances[i, :i], suggestions_distances[i, i+1:]))
         grades = np.concatenate((students_grades[:i], students_grades[i+1:]))
