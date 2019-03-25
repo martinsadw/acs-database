@@ -17,7 +17,7 @@ def get_distances_matrix(data, distance_function, *args, discretization=None, **
     return distance_matrix
 
 
-def get_grades_prediction(students_grades, suggestions_distances, quant_similar=3):
+def get_grades_prediction(students_grades, suggestions_distances, prediction_type='weighted', quant_similar=3):
     quant_students = len(students_grades)
     grade_prediction = np.empty((quant_students,))
 
@@ -26,8 +26,14 @@ def get_grades_prediction(students_grades, suggestions_distances, quant_similar=
         grades = np.concatenate((students_grades[:i], students_grades[i+1:]))
         sorted_indices = np.argsort(distances)
 
+        similar_distances = distances[sorted_indices[:quant_similar]]
         similar_grades = grades[sorted_indices[:quant_similar]]
-        grade_prediction[i] = similar_grades.mean()
+
+        if prediction_type == 'mean':
+            grade_prediction[i] = similar_grades.mean()
+        elif prediction_type == 'weighted':
+            grade_prediction[i] = np.average(similar_grades, weights=(1 / (similar_distances+0.01)))
+
 
     return grade_prediction
 
