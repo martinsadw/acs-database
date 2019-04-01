@@ -11,9 +11,9 @@ from utils.misc import hamming_distance, cosine_distance, array_interleave
 from utils.output import save_csv
 
 
-base_path = 'results/2019-03-27 - Teste/'
+base_path = 'results/2019-03-29 - Regressão/'
 
-def prediction(subject, distance_name, prediction_weight, value_used, style_filter, quant_similar, out_info=None):
+def prediction(subject, distance_name, prediction_type, value_used, style_filter, out_info=None):
     ##PARAMS########################################################################
     graphic_type = 'scatter'  # ['scatter', 'difference', 'values', 'none']
     graphic_save = True
@@ -81,12 +81,12 @@ def prediction(subject, distance_name, prediction_weight, value_used, style_filt
         students_values = filtered_grades - filtered_abilities
 
     # Calcula a previsão do valor utilizado
-    # if prediction_weight in ('kneighbors', 'gradient'):
-    #     filtered_suggestions = students_suggestions[~students_grades.mask]
-    #     grades_prediction = get_grades_regression(filtered_suggestions, students_values, prediction_weight=prediction_weight, quant_similar=quant_similar)
-    # else:
-    #     grades_prediction = get_grades_prediction(students_values, filtered_distances, prediction_weight=prediction_weight, quant_similar=quant_similar)
-    grades_prediction = get_grades_prediction(students_values, filtered_distances, prediction_weight=prediction_weight, quant_similar=quant_similar)
+    if prediction_type in ('kneighbors', 'gradient'):
+        filtered_suggestions = students_suggestions[~students_grades.mask]
+        grades_prediction = get_grades_regression(filtered_suggestions, students_values, regressor_name=prediction_type)
+    else:
+        grades_prediction = get_grades_prediction(students_values, filtered_distances, prediction_type=prediction_type)
+    # grades_prediction = get_grades_prediction(students_values, filtered_distances, prediction_type=prediction_type)
 
 
     grades_difference = np.abs(grades_prediction - students_values)
@@ -125,7 +125,7 @@ def prediction(subject, distance_name, prediction_weight, value_used, style_filt
 
     if graphic_type in ['scatter', 'difference', 'values']:
         fig = plt.figure()
-        fig.suptitle('%s - %d alunos - %s - Disciplina %d%s' % (value_show_name, quant_similar, distance_show_name, subject, filter_show_name))
+        fig.suptitle('%s - %s - %s - Disciplina %d%s' % (value_show_name, distance_show_name, prediction_type, subject, filter_show_name))
         ax = fig.add_subplot(111)
 
         if graphic_type == 'scatter':
@@ -147,7 +147,7 @@ def prediction(subject, distance_name, prediction_weight, value_used, style_filt
             plt.legend(loc=1)
 
         if graphic_save:
-            plt.savefig(graphics_folder_name + "/prediction_%d_%s_%s_%d_%s_%s_%s.png" % (subject, value_used, filter_file, quant_similar, distance_name, prediction_weight, graphic_type))
+            plt.savefig(graphics_folder_name + "/prediction_%d_%s_%s_%s_%s_%s.png" % (subject, value_used, filter_file, distance_name, prediction_type, graphic_type))
         if graphic_show:
             plt.show()
 
@@ -158,63 +158,60 @@ def prediction(subject, distance_name, prediction_weight, value_used, style_filt
         DEBUG_students = array_interleave((DEBUG_students_id, DEBUG_grades_prediction, DEBUG_students_distance), axis=1)
 
         DEBUG_print = np.concatenate([filtered_id[..., np.newaxis], filtered_grades[..., np.newaxis], DEBUG_students, grades_prediction[..., np.newaxis], grades_difference[..., np.newaxis]], axis=1)
-        save_csv(csv_folder_name + "/prediction_%d_%s_%s_%d_%s_%s_%s.csv" % (subject, value_used, filter_file, quant_similar, distance_name, prediction_weight, csv_type), DEBUG_print)
+        save_csv(csv_folder_name + "/prediction_%d_%s_%s_%s_%s_%s.csv" % (subject, value_used, filter_file, distance_name, prediction_type, csv_type), DEBUG_print)
 
 
 # tests_subject = [1, 2, 4, 5, 7, 8]
 # tests_distance_name = ['cosine', 'hamming']
 # tests_value_used = ['grade', 'ability', 'improvement']
 # tests_style_filter = [[], ['ati'], ['ref'], ['sem'], ['int'], ['vis'], ['ver'], ['seq'], ['glo']]
-# tests_quant_similar = [3, 4, 5]
-# tests_prediction_weight = ['uniform', 'distance']
-# tests_prediction_type = ['manual', 'kneighbors', 'gradient']
+# tests_prediction_type = ['uniform', 'distance', 'kneighbors', 'gradient']
+
+tests_subject = [1, 2, 4, 5, 7, 8]
+tests_distance_name = ['cosine']
+tests_value_used = ['grade', 'improvement']
+tests_style_filter = [[], ['ati'], ['ref'], ['sem'], ['int'], ['vis'], ['ver'], ['seq'], ['glo']]
+tests_prediction_type = ['uniform', 'distance', 'kneighbors', 'gradient']
 
 # tests_subject = [1, 2, 4, 5, 7, 8]
 # tests_distance_name = ['cosine']
-# tests_value_used = ['grade', 'improvement']
-# tests_style_filter = [[], ['ati'], ['ref'], ['sem'], ['int'], ['vis'], ['ver'], ['seq'], ['glo']]
-# tests_quant_similar = [3, 4, 5]
-# tests_prediction_weight = ['uniform', 'distance']
-
-tests_subject = [1]
-tests_distance_name = ['cosine']
-tests_value_used = ['improvement']
-tests_style_filter = [[]]
-tests_quant_similar = [1]
-tests_prediction_weight = ['uniform', 'distance']
-# tests_prediction_type = ['manual', 'kneighbors', 'gradient']
+# tests_value_used = ['improvement']
+# tests_style_filter = [[]]
+# tests_prediction_type = ['uniform', 'distance', 'kneighbors', 'gradient']
 
 a = 0
-total = len(tests_subject) * len(tests_distance_name) * len(tests_prediction_weight) * len(tests_value_used) * len(tests_style_filter) * len(tests_quant_similar)
+# total = len(tests_subject) * len(tests_distance_name) * len(tests_prediction_type) * len(tests_value_used) * len(tests_style_filter)
+total = len(tests_distance_name) * len(tests_prediction_type) * len(tests_value_used) * len(tests_style_filter)
 
 results = []
-results.append(['Disciplina', 'Tipo de distância', 'Tipo de valor', 'Filtro de estilo', 'Nº Alunos previsão', 'Tipo de previsão', 'Quantidade de alunos', 'Correlação', 'Diferença média', 'Erro', 'Média habilidade', 'Desvio habilidade', 'Média nota', 'Desvio nota', 'Média previsão', 'Desvio previsão'])
+# results.append(['Disciplina', 'Tipo de distância', 'Tipo de valor', 'Filtro de estilo', 'Tipo de previsão', 'Quantidade de alunos', 'Correlação', 'Diferença média', 'Erro', 'Média habilidade', 'Desvio habilidade', 'Média nota', 'Desvio nota', 'Média previsão', 'Desvio previsão'])
+results.append(['Tipo de distância', 'Tipo de valor', 'Filtro de estilo', 'Tipo de previsão', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro'])
 
-for subject in tests_subject:
-    for distance_name in tests_distance_name:
-        for value_used in tests_value_used:
-            for style_filter in tests_style_filter:
-                for quant_similar in tests_quant_similar:
-                    for prediction_weight in tests_prediction_weight:
-                        filter_name = ';'.join(style_filter) or 'all'
-                        new_result = [str(subject), distance_name, value_used, filter_name, str(quant_similar), prediction_weight]
+for distance_name in tests_distance_name:
+    for value_used in tests_value_used:
+        for style_filter in tests_style_filter:
+            for prediction_type in tests_prediction_type:
+                filter_name = ';'.join(style_filter) or 'all'
+                new_result = [distance_name, value_used, filter_name, prediction_type]
 
-                        out_info = {}
-                        prediction(subject, distance_name, prediction_weight, value_used, style_filter, quant_similar, out_info)
-                        new_result.append(out_info['quant_students'])
-                        new_result.append("%7.3f" % out_info['correlation'])
-                        new_result.append("%7.3f" % out_info['mean_difference'])
-                        new_result.append("%7.3f" % out_info['error'])
-                        new_result.append("%7.3f" % out_info['mean_ability'])
-                        new_result.append("%7.3f" % out_info['deviation_ability'])
-                        new_result.append("%7.3f" % out_info['mean_grade'])
-                        new_result.append("%7.3f" % out_info['deviation_grade'])
-                        new_result.append("%7.3f" % out_info['mean_prediction'])
-                        new_result.append("%7.3f" % out_info['deviation_prediction'])
+                for subject in tests_subject:
 
-                        results.append(new_result)
+                    out_info = {}
+                    prediction(subject, distance_name, prediction_type, value_used, style_filter, out_info)
+                    new_result.append(out_info['quant_students'])
+                    new_result.append("%7.3f" % out_info['correlation'])
+                    # new_result.append("%7.3f" % out_info['mean_difference'])
+                    new_result.append("%7.3f" % out_info['error'])
+                    # new_result.append("%7.3f" % out_info['mean_ability'])
+                    # new_result.append("%7.3f" % out_info['deviation_ability'])
+                    # new_result.append("%7.3f" % out_info['mean_grade'])
+                    # new_result.append("%7.3f" % out_info['deviation_grade'])
+                    # new_result.append("%7.3f" % out_info['mean_prediction'])
+                    # new_result.append("%7.3f" % out_info['deviation_prediction'])
 
-                        a += 1
-                        print('%d / %d' % (a, total))
+                results.append(new_result)
+
+                a += 1
+                print('%d / %d' % (a, total))
 
 np.savetxt(base_path + 'results.csv', results, fmt="%s", delimiter=", ", encoding="utf8")

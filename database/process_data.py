@@ -18,7 +18,7 @@ def get_distances_matrix(data, distance_function, *args, discretization=None, **
     return distance_matrix
 
 
-def get_grades_prediction(students_grades, suggestions_distances, prediction_weight='distance', quant_similar=3):
+def get_grades_prediction(students_grades, suggestions_distances, prediction_type='distance', quant_similar=3):
     quant_students = len(students_grades)
     grade_prediction = np.empty((quant_students,))
 
@@ -27,7 +27,7 @@ def get_grades_prediction(students_grades, suggestions_distances, prediction_wei
     # print(suggestions_distances.tolist())
     # print("==================")
 
-    if prediction_weight == 'kneighbors':
+    if prediction_type == 'kneighbors':
         distances = suggestions_distances.copy()
         np.fill_diagonal(distances, 1000)
 
@@ -47,30 +47,16 @@ def get_grades_prediction(students_grades, suggestions_distances, prediction_wei
             similar_distances = distances[sorted_indices[:quant_similar]]
             similar_grades = grades[sorted_indices[:quant_similar]]
 
-            if prediction_weight == 'uniform':
+            if prediction_type == 'uniform':
                 grade_prediction[i] = similar_grades.mean()
-            elif prediction_weight == 'distance':
+            elif prediction_type == 'distance':
                 # grade_prediction[i] = np.average(similar_grades, weights=(1 / (similar_distances+0.01)))
                 grade_prediction[i] = np.average(similar_grades, weights=(1 - similar_distances + 0.01))
 
     return grade_prediction
 
 
-def get_grades_regression(students_suggestions, students_grades, prediction_weight='distance', quant_similar=3):
-    quant_students = len(students_grades)
-    grade_prediction = np.empty((quant_students,))
-
-    print(students_suggestions)
-    if prediction_weight == 'kneighbors':
-        knn = neighbors.KNeighborsRegressor(quant_similar, metric='matching')
-        grade_prediction[:] = knn.fit(students_suggestions, students_grades).predict(students_suggestions)
-    elif prediction_weight == 'gradient':
-        clf = ensemble.GradientBoostingRegressor()
-        grade_prediction[:] = clf.fit(students_suggestions, students_grades).predict(students_suggestions)
-
-    return grade_prediction
-
-def DEBUG_get_grades_prediction(students_grades, suggestions_distances, students_id, quant_similar=3):
+def DEBUG_get_grades_prediction(students_grades, suggestions_distances, students_id, quant_similar=5):
     quant_students = len(students_grades)
     grade_prediction = np.empty((quant_students, quant_similar))
     suggested_students_distance = np.empty((quant_students, quant_similar))
@@ -87,3 +73,22 @@ def DEBUG_get_grades_prediction(students_grades, suggestions_distances, students
         suggested_students_id[i] = ids[sorted_indices[:quant_similar]]
 
     return (grade_prediction, suggested_students_distance, suggested_students_id)
+
+
+def get_grades_regression(students_suggestions, students_grades, regressor_name='kneighbors'):
+    quant_students = len(students_grades)
+    grade_prediction = np.empty((quant_students,))
+
+    regressor = None
+    if regressor_name == 'kneighbors':
+        regressor = neighbors.KNeighborsRegressor(metric='matching')
+    elif regressor_name == 'gradient':
+        regressor = ensemble.GradientBoostingRegressor()
+
+    for i in range(quant_students):
+        suggestions = np.concatenate((students_suggestions[:i], students_suggestions[i+1:]))
+        grades = np.concatenate((students_grades[:i], students_grades[i+1:]))
+
+        grade_prediction[i] = regressor.fit(suggestions, grades).predict(students_suggestions[i:i+1])
+
+    return grade_prediction
