@@ -14,9 +14,13 @@ def hamming_distance(a, b, axis=None, normalize=True):
 
 
 def cosine_similarity(a, b):
-    a = a.astype(int)
-    b = b.astype(int)
-    distance = np.dot(a, b) / np.sqrt(np.dot(a,a) * np.dot(b,b))
+    a = a.astype(float)
+    b = b.astype(float)
+    # distance = np.dot(a, b) / np.sqrt(np.dot(a,a) * np.dot(b,b))
+
+    numerator = np.dot(a, b)
+    denominator = np.sqrt(np.dot(a,a) * np.dot(b,b))
+    distance = np.divide(numerator, denominator, np.zeros_like(numerator), where=(denominator!=0))
 
     return distance
 

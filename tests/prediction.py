@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,18 +13,20 @@ from utils.misc import hamming_distance, cosine_distance, array_interleave
 from utils.output import save_csv
 
 
-base_path = 'results/2019-03-29 - Regressão/'
+##PARAMS########################################################################
+base_path = 'results/2019-04-12 - Similaridade de materiais/'
+
+graphic_type = 'scatter'  # ['scatter', 'difference', 'values', 'none']
+graphic_save = True
+graphic_show = False
+graphics_folder_name = base_path + 'graphics'
+
+csv_type = 'values'  # ['values', 'none']
+csv_folder_name = base_path + 'csv'
+################################################################################
+
 
 def prediction(subject, distance_name, prediction_type, value_used, style_filter, out_info=None):
-    ##PARAMS########################################################################
-    graphic_type = 'scatter'  # ['scatter', 'difference', 'values', 'none']
-    graphic_save = True
-    graphic_show = False
-    graphics_folder_name = base_path + 'graphics'
-
-    csv_type = 'values'  # ['values', 'none']
-    csv_folder_name = base_path + 'csv'
-    ################################################################################
     if distance_name == 'hamming':
         distance_show_name = 'Hamming'
         distance_function = hamming_distance
@@ -64,6 +68,18 @@ def prediction(subject, distance_name, prediction_type, value_used, style_filter
     students_grades = get_students_grades(subject, students_index, grades_db)
     students_abilities = get_students_abilities(subject, students_index, abilities_db)
 
+    # max_materials = 30
+    # # materials_distances = get_distances_matrix(students_suggestions.T, hamming_distance)
+    # # materials_distances = get_distances_matrix(students_suggestions.T, cosine_distance)
+    # # materials_distances = get_distances_matrix(students_suggestions.T, lambda a, b: np.logical_and(a, b).sum())
+    # materials_distances = get_distances_matrix(students_suggestions.T, lambda a, b: (a != b).sum())
+    # np.fill_diagonal(materials_distances, 0)
+    # for i in range(students_suggestions.shape[1] - max_materials):
+    #     max_index = np.unravel_index(np.argmax(materials_distances), materials_distances.shape)
+    #     materials_distances = np.delete(materials_distances, max_index[0], axis=0)
+    #     materials_distances = np.delete(materials_distances, max_index[0], axis=1)
+    #     students_suggestions = np.delete(students_suggestions, max_index[0], axis=1)
+
     # Calcula a distância entre cada aluno utilizando os materiais sugeridos
     suggestions_distances = get_distances_matrix(students_suggestions, distance_function)
 
@@ -88,7 +104,6 @@ def prediction(subject, distance_name, prediction_type, value_used, style_filter
         grades_prediction = get_grades_prediction(students_values, filtered_distances, prediction_type=prediction_type)
     # grades_prediction = get_grades_prediction(students_values, filtered_distances, prediction_type=prediction_type)
 
-
     grades_difference = np.abs(grades_prediction - students_values)
 
     ################################################################################
@@ -99,18 +114,10 @@ def prediction(subject, distance_name, prediction_type, value_used, style_filter
     sorted_prediction = grades_prediction[sort_values]
     sorted_difference = grades_difference[sort_values]
 
-    # print(students_id)
-    # sorted_ids = students_id[sort_values]
-    # print(sorted_difference.mean()*2)
-    # print(sorted_ids[sorted_difference > sorted_difference.mean()*2])
-
     values_correlation = np.corrcoef(sorted_values, sorted_prediction)[1, 0]
     values_mean = grades_difference.mean()
     values_error = (grades_difference ** 2).mean()
-    # print('Quantidade de alunos: %d' % len(grades_difference))
-    # print('Correlação: %f' % values_correlation)
-    # print('Diferença média: %f' % values_mean)
-    # print('Erro: %f' % values_error)
+
     if out_info is not None:
         out_info['quant_students'] = len(grades_difference)
         out_info['correlation'] = values_correlation
@@ -129,8 +136,13 @@ def prediction(subject, distance_name, prediction_type, value_used, style_filter
         ax = fig.add_subplot(111)
 
         if graphic_type == 'scatter':
-            plt.ylim(0, 1)
-            plt.xlim(0, 1)
+            if value_used == 'improvement':
+                plt.ylim(-1, 1)
+                plt.xlim(-1, 1)
+            else:
+                plt.ylim(0, 1)
+                plt.xlim(0, 1)
+
             ax.set_xlabel('Notas')
             ax.set_ylabel('Previsões')
             plt.scatter(sorted_values, sorted_prediction, color='r', s=20)
@@ -147,7 +159,7 @@ def prediction(subject, distance_name, prediction_type, value_used, style_filter
             plt.legend(loc=1)
 
         if graphic_save:
-            plt.savefig(graphics_folder_name + "/prediction_%d_%s_%s_%s_%s_%s.png" % (subject, value_used, filter_file, distance_name, prediction_type, graphic_type))
+            plt.savefig(graphics_folder_name + "/prediction_%s_%s_%s_%s_%s_%d.png" % (value_used, filter_file, distance_name, prediction_type, graphic_type, subject))
         if graphic_show:
             plt.show()
 
@@ -158,7 +170,7 @@ def prediction(subject, distance_name, prediction_type, value_used, style_filter
         DEBUG_students = array_interleave((DEBUG_students_id, DEBUG_grades_prediction, DEBUG_students_distance), axis=1)
 
         DEBUG_print = np.concatenate([filtered_id[..., np.newaxis], filtered_grades[..., np.newaxis], DEBUG_students, grades_prediction[..., np.newaxis], grades_difference[..., np.newaxis]], axis=1)
-        save_csv(csv_folder_name + "/prediction_%d_%s_%s_%s_%s_%s.csv" % (subject, value_used, filter_file, distance_name, prediction_type, csv_type), DEBUG_print)
+        save_csv(csv_folder_name + "/prediction_%s_%s_%s_%s_%s_%d.csv" % (value_used, filter_file, distance_name, prediction_type, csv_type, subject), DEBUG_print)
 
 
 # tests_subject = [1, 2, 4, 5, 7, 8]
@@ -177,7 +189,7 @@ tests_prediction_type = ['uniform', 'distance', 'kneighbors', 'gradient']
 # tests_distance_name = ['cosine']
 # tests_value_used = ['improvement']
 # tests_style_filter = [[]]
-# tests_prediction_type = ['uniform', 'distance', 'kneighbors', 'gradient']
+# tests_prediction_type = ['uniform']
 
 a = 0
 # total = len(tests_subject) * len(tests_distance_name) * len(tests_prediction_type) * len(tests_value_used) * len(tests_style_filter)
@@ -186,6 +198,9 @@ total = len(tests_distance_name) * len(tests_prediction_type) * len(tests_value_
 results = []
 # results.append(['Disciplina', 'Tipo de distância', 'Tipo de valor', 'Filtro de estilo', 'Tipo de previsão', 'Quantidade de alunos', 'Correlação', 'Diferença média', 'Erro', 'Média habilidade', 'Desvio habilidade', 'Média nota', 'Desvio nota', 'Média previsão', 'Desvio previsão'])
 results.append(['Tipo de distância', 'Tipo de valor', 'Filtro de estilo', 'Tipo de previsão', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro', 'Nº alunos', 'Correlação', 'Erro'])
+
+os.makedirs(graphics_folder_name, exist_ok=True)
+os.makedirs(csv_folder_name, exist_ok=True)
 
 for distance_name in tests_distance_name:
     for value_used in tests_value_used:
